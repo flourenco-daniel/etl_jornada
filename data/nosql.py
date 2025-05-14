@@ -2,21 +2,18 @@ import requests
 from tinydb import TinyDB
 from datetime import datetime
 
-
-
 def extrair():
     url = 'https://api.coinbase.com/v2/prices/spot'
     try:
         response = requests.get(url)
         if response.status_code == 200:
-            return(response.json())
+            return response.json()
         else:
-            return(f"Erro: Código de status: {response.status_code}")
-    except requests.exception.RequestException as e:
-            return(f"Erro na requisição: {e}")
-
-extrair()
-
+            print(f"Erro: Código de status: {response.status_code}")
+            return None
+    except requests.exceptions.RequestException as e:
+        print(f"Erro na requisição: {e}")
+        return None
 
 def transformar(dados_json):
     try:
@@ -25,19 +22,22 @@ def transformar(dados_json):
         moeda = dados_json['data']['currency']
         dados_tratados = {
             "valor": valor,
-            "criptomoeda:": criptomoeda,
+            "criptomoeda": criptomoeda,  # Corrigido aqui
             "moeda": moeda,
             "timestamp": datetime.now().isoformat()
         }
         return dados_tratados
-    except KeyError as e:
-        print(f"Erro: Chave ausente no JSON: {e}")
+    except (KeyError, TypeError) as e:
+        print(f"Erro ao transformar dados: {e}")
         return None
 
 def load(dados_tratados):
-    db = TinyDB('db.json')
-    db.insert(dados_tratados)
-    print("Deu bom!")
+    if dados_tratados is not None:
+        db = TinyDB('db.json')
+        db.insert(dados_tratados)
+        print("Deu bom!")
+    else:
+        print("Dados tratados estão vazios. Nada foi salvo.")
 
 if __name__ == '__main__':
     dados_json = extrair()
